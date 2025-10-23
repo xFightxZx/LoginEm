@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกเวลาเข้างาน</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Login View -->
+    <div id="loginView" class="container">
+        <div class="header">
+            <h1>ระบบบันทึกเวลาเข้างาน</h1>
+            <div class="time-display" id="loginTime">00:00:00</div>
+            <div class="date-display" id="loginDate">-</div>
+        </div>
+
+        <div class="login-container">
+            <h2>เข้าสู่ระบบ</h2>
+            
+            <div class="form-group">
+                <label>ชื่อผู้ใช้</label>
+                <input type="text" id="usernameInput" placeholder="กรอกชื่อผู้ใช้">
+            </div>
+
+            <div class="form-group">
+                <label>รหัสผ่าน</label>
+                <input type="password" id="passwordInput" placeholder="••••">
+            </div>
+
+            <button class="btn btn-primary" onclick="login()">เข้าสู่ระบบ</button>
+
+            <p class="note">* กรุณาติดต่อผู้ดูแลระบบเพื่อขอข้อมูลเข้าสู่ระบบ</p>
+        </div>
+    </div>
+
+    <!-- Main View -->
+    <div id="mainView" class="container hidden">
+        <div class="header">
+            <h1>ระบบบันทึกเวลาเข้างาน</h1>
+            <div class="time-display" id="mainTime">00:00:00</div>
+            <div class="date-display" id="mainDate">-</div>
+            <button onclick="logout()" class="logout-btn">ออกจากระบบ</button>
+        </div>
+
+        <div class="main-container">
+            <!-- Left Panel -->
+            <div class="panel">
+                <div class="panel-header">
+                    <span>👤</span>
+                    <h2 id="employeeName">-</h2>
+                </div>
+                <p class="status">สถานะ: <span id="statusText">ยังไม่เข้างาน</span></p>
+
+                <button class="btn btn-check-in" id="btnCheckIn" onclick="checkIn()">เข้างาน</button>
+
+                <div class="btn-grid">
+                    <button class="btn btn-secondary" id="btnBreakStart" onclick="breakStart()">เริ่มพัก</button>
+                    <button class="btn btn-secondary" id="btnBreakEnd" onclick="breakEnd()">จบพัก</button>
+                </div>
+
+                <button class="btn btn-check-out" id="btnCheckOut" onclick="checkOut()">ออกงาน</button>
+                <button class="btn btn-leave" onclick="leave()">ลา</button>
+            </div>
+
+            <!-- Right Panel -->
+            <div class="panel">
+                <div class="history-header">
+                    <div class="panel-header">
+                        <span>📅</span>
+                        <h2>ประวัติ</h2>
+                    </div>
+                    <button class="toggle-history-btn" onclick="toggleHistory()">
+                        <span id="toggleHistoryText">ซ่อน</span>
+                    </button>
+                </div>
+
+                <p style="color:#94a3b8;font-size:0.9rem;margin-bottom:20px">เวลาออกเอางทั้งงานที่เช็กอยู่</p>
+
+                <div class="filter-section">
+                    <label>เลือกเดือน:</label>
+                    <input type="month" id="monthFilter">
+                    <button onclick="filterByMonth()">ค้นหา</button>
+                    <button onclick="clearFilter()">ล้าง</button>
+                    <span class="total-hours">รวมชั่วโมง: <span id="totalHours">0.00 ชม.</span></span>
+                </div>
+
+                <div id="historyContent">
+                    <div style="overflow-x:auto">
+                        <table id="recordsTable">
+                            <thead>
+                                <tr>
+                                    <th>ชื่อพนักงาน</th>
+                                    <th>วันที่</th>
+                                    <th>เข้า</th>
+                                    <th>ออก</th>
+                                    <th>เริ่มพัก</th>
+                                    <th>จบพัก</th>
+                                    <th>หัก (ชั่วโมง)</th>
+                                    <th>ชั่วโมงรวม</th>
+                                    <th>หมายเหตุ</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recordsBody"></tbody>
+                        </table>
+                    </div>
+                    <div id="emptyState" class="empty-state">
+                        <div style="font-size:3rem;opacity:0.5">📅</div>
+                        <p>ยังไม่มีประวัติการบันทึก</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <p class="footer-note">* ระบบจะบันทึกข้อมูลลงฐานข้อมูล</p>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
