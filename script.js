@@ -11,21 +11,17 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 // ========================================
 // STATE VARIABLES
 // ========================================
-let currentEmployee = '';
-let currentUserId = null;
-let currentStatus = 'not_started'; // not_started, working, on_break, finished
-let records = [];
-let allRecords = [];
-let showHistory = true;
+let currentEmployee = ''
+let currentUserId = null
+let currentStatus = 'not_started'
+let records = []
+let allRecords = []
+let showHistory = true
 
 // ========================================
 // DATABASE API FUNCTIONS
 // ========================================
 
-/**
- * ตรวจสอบ Login
- * ตาราง: users (id, username, password, name, role)
- */
 async function authenticateUser(username, password) {
     try {
         const { data, error } = await supabase
@@ -47,14 +43,10 @@ async function authenticateUser(username, password) {
     }
 }
 
-/**
- * บันทึกเข้างาน
- * ตาราง: attendance_records (id, user_id, date, check_in, check_out, break_start, break_end, note)
- */
 async function saveCheckIn(userId) {
     try {
         const now = new Date()
-        const dateStr = now.toLocaleDateString('th-TH')
+        const dateStr = now.toISOString().split('T')[0]
         const timeStr = now.toLocaleTimeString('th-TH', { 
             hour: '2-digit', 
             minute: '2-digit', 
@@ -89,9 +81,6 @@ async function saveCheckIn(userId) {
     }
 }
 
-/**
- * บันทึกออกงาน
- */
 async function saveCheckOut(recordId) {
     try {
         const now = new Date()
@@ -114,9 +103,6 @@ async function saveCheckOut(recordId) {
     }
 }
 
-/**
- * บันทึกเริ่มพัก
- */
 async function saveBreakStart(recordId) {
     try {
         const now = new Date()
@@ -139,9 +125,6 @@ async function saveBreakStart(recordId) {
     }
 }
 
-/**
- * บันทึกจบพัก
- */
 async function saveBreakEnd(recordId) {
     try {
         const now = new Date()
@@ -164,13 +147,10 @@ async function saveBreakEnd(recordId) {
     }
 }
 
-/**
- * บันทึกการลา
- */
 async function saveLeave(userId) {
     try {
         const now = new Date()
-        const dateStr = now.toLocaleDateString('th-TH')
+        const dateStr = now.toISOString().split('T')[0]
 
         const { error } = await supabase
             .from('attendance_records')
@@ -194,9 +174,6 @@ async function saveLeave(userId) {
     }
 }
 
-/**
- * ดึงประวัติการบันทึก (ของทุกคน)
- */
 async function fetchRecords(userId, month = null) {
     try {
         let query = supabase
@@ -212,14 +189,12 @@ async function fetchRecords(userId, month = null) {
                 note,
                 users (name)
             `)
-            // ไม่กรอง user_id เพื่อให้เห็นข้อมูลของทุกคน
             .order('date', { ascending: false })
             .order('check_in', { ascending: false })
 
-        // ถ้ามีการเลือกเดือน
         if (month) {
-            // month format: YYYY-MM
-            query = query.like('date', `%${month}%`)
+            query = query.gte('date', `${month}-01`)
+                         .lte('date', `${month}-31`)
         }
 
         const { data, error } = await query
@@ -229,11 +204,11 @@ async function fetchRecords(userId, month = null) {
             return []
         }
 
-        // แปลงข้อมูลให้ตรงกับ format ที่ใช้
         return data.map(record => ({
             id: record.id,
             employee: record.users?.name || 'ไม่ระบุ',
-            date: record.date,
+            date: formatDateThai(record.date),
+            dateRaw: record.date,
             checkIn: record.check_in || '-',
             checkOut: record.check_out || '-',
             breakStart: record.break_start || '-',
@@ -243,6 +218,21 @@ async function fetchRecords(userId, month = null) {
     } catch (error) {
         console.error('Fetch records exception:', error)
         return []
+    }
+}
+
+function formatDateThai(dateStr) {
+    if (!dateStr) return '-'
+    
+    try {
+        const date = new Date(dateStr)
+        return date.toLocaleDateString('th-TH', {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        })
+    } catch (error) {
+        return dateStr
     }
 }
 
@@ -294,6 +284,15 @@ async function login() {
         currentEmployee = user.name || username
         currentUserId = user.id
         
+        // เก็บข้อมูล user ไว้ใน localStorage
+        localStorage.setItem('adminUser', JSON.stringify(user))
+        
+        // ถ้าเป็น admin หรือ finance ให้ไปหน้า admin
+        if (user.role === 'admin' || user.role === 'finance') {
+            window.location.href = 'admin.html'
+            return
+        }
+        
         document.getElementById('loginView').classList.add('hidden')
         document.getElementById('mainView').classList.remove('hidden')
         document.getElementById('employeeName').textContent = currentEmployee
@@ -316,6 +315,8 @@ function logout() {
         records = []
         allRecords = []
         
+        localStorage.removeItem('adminUser')
+        
         document.getElementById('mainView').classList.add('hidden')
         document.getElementById('loginView').classList.remove('hidden')
         
@@ -324,7 +325,6 @@ function logout() {
     }
 }
 
-// Enter key to login
 document.addEventListener('DOMContentLoaded', function() {
     const passwordInput = document.getElementById('passwordInput')
     const usernameInput = document.getElementById('usernameInput')
@@ -355,6 +355,7 @@ async function checkIn() {
         id: recordId,
         employee: currentEmployee,
         date: now.toLocaleDateString('th-TH'),
+        dateRaw: now.toISOString().split('T')[0],
         checkIn: now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         checkOut: '-',
         breakStart: '-',
@@ -421,6 +422,7 @@ async function leave() {
         id: Date.now(),
         employee: currentEmployee,
         date: now.toLocaleDateString('th-TH'),
+        dateRaw: now.toISOString().split('T')[0],
         checkIn: '-',
         checkOut: '-',
         breakStart: '-',
@@ -471,24 +473,19 @@ async function loadRecords() {
     records = fetchedRecords
     allRecords = [...fetchedRecords]
     
-    // เติมรายชื่อพนักงานใน dropdown
     populateEmployeeFilter()
     
     renderRecords()
 }
 
-// เติมรายชื่อพนักงานใน dropdown filter
 function populateEmployeeFilter() {
     const employeeFilter = document.getElementById('employeeFilter')
     if (!employeeFilter) return
     
-    // ดึงชื่อพนักงานที่ไม่ซ้ำกัน
     const uniqueEmployees = [...new Set(allRecords.map(r => r.employee))]
     
-    // ล้าง dropdown
     employeeFilter.innerHTML = '<option value="">ทุกคน</option>'
     
-    // เพิ่มตัวเลือก
     uniqueEmployees.forEach(name => {
         const option = document.createElement('option')
         option.value = name
@@ -562,10 +559,8 @@ async function applyFilters() {
     const selectedEmployee = employeeFilter ? employeeFilter.value : ''
     const selectedMonth = monthInput ? monthInput.value : ''
 
-    // ดึงข้อมูลใหม่จาก database ตาม filter
     const fetchedRecords = await fetchRecords(currentUserId, selectedMonth)
     
-    // กรองตามพนักงาน (ถ้าเลือก)
     if (selectedEmployee) {
         records = fetchedRecords.filter(r => r.employee === selectedEmployee)
     } else {
