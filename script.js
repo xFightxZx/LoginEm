@@ -281,6 +281,9 @@ async function login() {
     const user = await authenticateUser(username, password)
 
     if (user) {
+        console.log('Login Success:', user) // Debug
+        console.log('User Role:', user.role) // Debug
+        
         currentEmployee = user.name || username
         currentUserId = user.id
         
@@ -289,9 +292,13 @@ async function login() {
         
         // ถ้าเป็น admin หรือ finance ให้ไปหน้า admin
         if (user.role === 'admin' || user.role === 'finance') {
+            console.log('Redirecting to admin.html') // Debug
+            alert('กำลังเข้าสู่หน้า Admin...') // ทดสอบ
             window.location.href = 'admin.html'
             return
         }
+        
+        console.log('Going to employee page') // Debug
         
         document.getElementById('loginView').classList.add('hidden')
         document.getElementById('mainView').classList.remove('hidden')
