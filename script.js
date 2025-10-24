@@ -195,7 +195,7 @@ async function saveLeave(userId) {
 }
 
 /**
- * ดึงประวัติการบันทึก
+ * ดึงประวัติการบันทึก (ของทุกคน)
  */
 async function fetchRecords(userId, month = null) {
     try {
@@ -212,8 +212,9 @@ async function fetchRecords(userId, month = null) {
                 note,
                 users (name)
             `)
-            .eq('user_id', userId)
+            // ไม่กรอง user_id เพื่อให้เห็นข้อมูลของทุกคน
             .order('date', { ascending: false })
+            .order('check_in', { ascending: false })
 
         // ถ้ามีการเลือกเดือน
         if (month) {
@@ -469,7 +470,31 @@ async function loadRecords() {
     const fetchedRecords = await fetchRecords(currentUserId)
     records = fetchedRecords
     allRecords = [...fetchedRecords]
+    
+    // เติมรายชื่อพนักงานใน dropdown
+    populateEmployeeFilter()
+    
     renderRecords()
+}
+
+// เติมรายชื่อพนักงานใน dropdown filter
+function populateEmployeeFilter() {
+    const employeeFilter = document.getElementById('employeeFilter')
+    if (!employeeFilter) return
+    
+    // ดึงชื่อพนักงานที่ไม่ซ้ำกัน
+    const uniqueEmployees = [...new Set(allRecords.map(r => r.employee))]
+    
+    // ล้าง dropdown
+    employeeFilter.innerHTML = '<option value="">ทุกคน</option>'
+    
+    // เพิ่มตัวเลือก
+    uniqueEmployees.forEach(name => {
+        const option = document.createElement('option')
+        option.value = name
+        option.textContent = name
+        employeeFilter.appendChild(option)
+    })
 }
 
 function calculateHours(timeStr1, timeStr2) {
@@ -530,23 +555,37 @@ function renderRecords() {
 // ========================================
 // FILTER & HISTORY
 // ========================================
-async function filterByMonth() {
+async function applyFilters() {
+    const employeeFilter = document.getElementById('employeeFilter')
     const monthInput = document.getElementById('monthFilter')
-    if (!monthInput || !monthInput.value) {
-        alert('กรุณาเลือกเดือน')
-        return
-    }
-
-    const selectedMonth = monthInput.value
     
+    const selectedEmployee = employeeFilter ? employeeFilter.value : ''
+    const selectedMonth = monthInput ? monthInput.value : ''
+
+    // ดึงข้อมูลใหม่จาก database ตาม filter
     const fetchedRecords = await fetchRecords(currentUserId, selectedMonth)
-    records = fetchedRecords
+    
+    // กรองตามพนักงาน (ถ้าเลือก)
+    if (selectedEmployee) {
+        records = fetchedRecords.filter(r => r.employee === selectedEmployee)
+    } else {
+        records = fetchedRecords
+    }
+    
     renderRecords()
+}
+
+async function filterByMonth() {
+    await applyFilters()
 }
 
 function clearFilter() {
     const monthInput = document.getElementById('monthFilter')
+    const employeeFilter = document.getElementById('employeeFilter')
+    
     if (monthInput) monthInput.value = ''
+    if (employeeFilter) employeeFilter.value = ''
+    
     records = [...allRecords]
     renderRecords()
 }
@@ -572,6 +611,7 @@ window.breakStart = breakStart
 window.breakEnd = breakEnd
 window.checkOut = checkOut
 window.leave = leave
+window.applyFilters = applyFilters
 window.filterByMonth = filterByMonth
 window.clearFilter = clearFilter
 window.toggleHistory = toggleHistory
